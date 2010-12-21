@@ -1928,6 +1928,7 @@ ColladaUrdfException::ColladaUrdfException(std::string const& what)
 {
 }
 
+
 bool WriteUrdfModelToColladaFile(urdf::Model const& robot_model, string const& file) {
     ColladaWriter writer(robot_model,0);
     if ( ! writer.convert() ) {
@@ -1935,6 +1936,47 @@ bool WriteUrdfModelToColladaFile(urdf::Model const& robot_model, string const& f
         return -1;
     }
     return writer.writeTo(file);
+}
+
+bool colladaFromUrdfFile(string const& file, boost::shared_ptr<DAE>& dom) {
+    TiXmlDocument urdf_xml;
+    if (!urdf_xml.LoadFile(file)) {
+        ROS_ERROR("Could not load XML file");
+        return false;
+    }
+
+    return colladaFromUrdfXml(&urdf_xml, dom);
+}
+
+bool colladaFromUrdfString(string const& xml, boost::shared_ptr<DAE>& dom) {
+    TiXmlDocument urdf_xml;
+    if (urdf_xml.Parse(xml.c_str()) == 0) {
+        ROS_ERROR("Could not parse XML document");
+        return false;
+    }
+
+    return colladaFromUrdfXml(&urdf_xml, dom);
+}
+
+bool colladaFromUrdfXml(TiXmlDocument* xml_doc, boost::shared_ptr<DAE>& dom) {
+    urdf::Model robot_model;
+    if (!robot_model.initXml(xml_doc)) {
+        ROS_ERROR("Could not generate robot model");
+        return false;
+    }
+
+    return colladaFromUrdfModel(robot_model, dom);
+}
+
+bool colladaFromUrdfModel(urdf::Model const& robot_model, boost::shared_ptr<DAE>& dom) {
+    ColladaWriter writer(robot_model,0);
+    dom = writer.convert();
+    return dom != boost::shared_ptr<DAE>();
+}
+
+bool colladaToFile(boost::shared_ptr<DAE> dom, string const& file) {
+	daeString uri = dom->getDoc(0)->getDocumentURI()->getURI();
+	return dom->writeTo(uri, file);
 }
 
 }
