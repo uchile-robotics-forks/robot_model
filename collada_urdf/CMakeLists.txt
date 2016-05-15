@@ -80,3 +80,7 @@ install(TARGETS ${PROJECT_NAME} urdf_to_collada collada_to_urdf
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(FILES test/pr2.urdf
+  DESTINATION ${CATKIN_DEVEL_PREFIX}/test
+  )
