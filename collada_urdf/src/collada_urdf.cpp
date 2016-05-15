@@ -616,8 +616,12 @@ public:
     virtual ~ColladaWriter() {
     }
 
-    daeDocument* doc() {
+    daeDocument* doc() const {
         return _doc;
+    }
+
+    DAE* colladaRepresentation() {
+        return &_collada;
     }
 
     bool convert()
@@ -1938,7 +1942,7 @@ bool WriteUrdfModelToColladaFile(urdf::Model const& robot_model, string const& f
     return writer.writeTo(file);
 }
 
-bool colladaFromUrdfFile(string const& file, boost::shared_ptr<DAE>& dom) {
+bool colladaFromUrdfFile(string const& file, boost::shared_ptr<DAE> dom) {
     TiXmlDocument urdf_xml;
     if (!urdf_xml.LoadFile(file)) {
         ROS_ERROR("Could not load XML file");
@@ -1948,7 +1952,7 @@ bool colladaFromUrdfFile(string const& file, boost::shared_ptr<DAE>& dom) {
     return colladaFromUrdfXml(&urdf_xml, dom);
 }
 
-bool colladaFromUrdfString(string const& xml, boost::shared_ptr<DAE>& dom) {
+bool colladaFromUrdfString(string const& xml, boost::shared_ptr<DAE> dom) {
     TiXmlDocument urdf_xml;
     if (urdf_xml.Parse(xml.c_str()) == 0) {
         ROS_ERROR("Could not parse XML document");
@@ -1958,7 +1962,7 @@ bool colladaFromUrdfString(string const& xml, boost::shared_ptr<DAE>& dom) {
     return colladaFromUrdfXml(&urdf_xml, dom);
 }
 
-bool colladaFromUrdfXml(TiXmlDocument* xml_doc, boost::shared_ptr<DAE>& dom) {
+bool colladaFromUrdfXml(TiXmlDocument* xml_doc, boost::shared_ptr<DAE> dom) {
     urdf::Model robot_model;
     if (!robot_model.initXml(xml_doc)) {
         ROS_ERROR("Could not generate robot model");
@@ -1968,10 +1972,11 @@ bool colladaFromUrdfXml(TiXmlDocument* xml_doc, boost::shared_ptr<DAE>& dom) {
     return colladaFromUrdfModel(robot_model, dom);
 }
 
-bool colladaFromUrdfModel(urdf::Model const& robot_model, boost::shared_ptr<DAE>& dom) {
+bool colladaFromUrdfModel(urdf::Model const& robot_model, boost::shared_ptr<DAE> dom) {
     ColladaWriter writer(robot_model,0);
-    dom = writer.convert();
-    return dom != boost::shared_ptr<DAE>();
+    bool success = writer.convert();
+    dom = boost::shared_ptr<DAE>(writer.colladaRepresentation());
+    return success && dom != boost::shared_ptr<DAE>();
 }
 
 bool colladaToFile(boost::shared_ptr<DAE> dom, string const& file) {
