@@ -1,6 +1,10 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(collada_urdf)
 
+if(NOT WIN32)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+endif()
+
 find_package(catkin REQUIRED COMPONENTS angles collada_parser resource_retriever urdf geometric_shapes tf cmake_modules)
 
 find_package(TinyXML REQUIRED)
@@ -70,8 +74,13 @@ set_target_properties(collada_to_urdf PROPERTIES LINK_FLAGS "${ASSIMP_LINK_FLAGS
 
 if(CATKIN_ENABLE_TESTING)
   catkin_add_gtest(test_collada_writer test/test_collada_urdf.cpp)
-  target_link_libraries(test_collada_writer ${PROJECT_NAME} ${catkin_LIBRARIES} ${COLLADA_DOM_LIBRARIES}  
+  target_link_libraries(test_collada_writer ${PROJECT_NAME} ${catkin_LIBRARIES} ${COLLADA_DOM_LIBRARIES}
     ${Boost_LIBRARIES})
+
+  # This might only work with isolated builds...
+  install(FILES test/pr2.urdf
+    DESTINATION ${CMAKE_BINARY_DIR}/test
+    )
 endif()
 
 install(TARGETS ${PROJECT_NAME} urdf_to_collada collada_to_urdf
@@ -80,7 +89,3 @@ install(TARGETS ${PROJECT_NAME} urdf_to_collada collada_to_urdf
 
 install(DIRECTORY include/${PROJECT_NAME}/
   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
-
-install(FILES test/pr2.urdf
-  DESTINATION ${CATKIN_DEVEL_PREFIX}/test
-  )

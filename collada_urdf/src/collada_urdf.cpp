@@ -59,6 +59,7 @@
 #include <boost/date_time/posix_time/posix_time_io.hpp>
 #include <boost/format.hpp>
 #include <boost/array.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/scoped_ptr.hpp>
 
@@ -82,7 +83,7 @@
 #include <geometric_shapes/shapes.h>
 #include <geometric_shapes/mesh_operations.h>
 
-#define FOREACH(it, v) for(typeof((v).begin())it = (v).begin(); it != (v).end(); (it)++)
+#define FOREACH(it, v) for(decltype((v).begin())it = (v).begin(); it != (v).end(); (it)++)
 #define FOREACHC FOREACH
 
 using namespace std;
@@ -610,6 +611,7 @@ private:
 
 public:
     ColladaWriter(const urdf::Model& robot, int writeoptions) : _writeoptions(writeoptions), _robot(robot), _dom(NULL) {
+        _collada = boost::shared_ptr<DAE>(new DAE);
         daeErrorHandler::setErrorHandler(this);
         _importer.SetIOHandler(new ResourceIOSystem());
     }
@@ -620,15 +622,15 @@ public:
         return _doc;
     }
 
-    DAE* colladaRepresentation() {
-        return &_collada;
+    boost::shared_ptr<DAE> colladaRepresentation() {
+        return _collada;
     }
 
     bool convert()
     {
         try {
             const char* documentName = "urdf_snapshot";
-            daeInt error = _collada.getDatabase()->insertDocument(documentName, &_doc ); // also creates a collada root
+            daeInt error = _collada->getDatabase()->insertDocument(documentName, &_doc ); // also creates a collada root
             if (error != DAE_OK || _doc == NULL) {
                 throw ColladaUrdfException("Failed to create document");
             }
@@ -705,7 +707,7 @@ public:
     bool writeTo(string const& file) {
         try {
             daeString uri = _doc->getDocumentURI()->getURI();
-            _collada.writeTo(uri, file);
+            _collada->writeTo(uri, file);
         } catch (ColladaUrdfException ex) {
             return false;
         }
@@ -1901,7 +1903,7 @@ private:
     int _writeoptions;
 
     const urdf::Model& _robot;
-    DAE _collada;
+    boost::shared_ptr<DAE> _collada;
     domCOLLADA* _dom;
     daeDocument *_doc;
     domCOLLADA::domSceneRef _globalscene;
@@ -1942,7 +1944,7 @@ bool WriteUrdfModelToColladaFile(urdf::Model const& robot_model, string const& f
     return writer.writeTo(file);
 }
 
-bool colladaFromUrdfFile(string const& file, boost::shared_ptr<DAE> dom) {
+bool colladaFromUrdfFile(string const& file, boost::shared_ptr<DAE> & dom) {
     TiXmlDocument urdf_xml;
     if (!urdf_xml.LoadFile(file)) {
         ROS_ERROR("Could not load XML file");
@@ -1952,7 +1954,7 @@ bool colladaFromUrdfFile(string const& file, boost::shared_ptr<DAE> dom) {
     return colladaFromUrdfXml(&urdf_xml, dom);
 }
 
-bool colladaFromUrdfString(string const& xml, boost::shared_ptr<DAE> dom) {
+bool colladaFromUrdfString(string const& xml, boost::shared_ptr<DAE> & dom) {
     TiXmlDocument urdf_xml;
     if (urdf_xml.Parse(xml.c_str()) == 0) {
         ROS_ERROR("Could not parse XML document");
@@ -1962,7 +1964,7 @@ bool colladaFromUrdfString(string const& xml, boost::shared_ptr<DAE> dom) {
     return colladaFromUrdfXml(&urdf_xml, dom);
 }
 
-bool colladaFromUrdfXml(TiXmlDocument* xml_doc, boost::shared_ptr<DAE> dom) {
+bool colladaFromUrdfXml(TiXmlDocument* xml_doc, boost::shared_ptr<DAE> & dom) {
     urdf::Model robot_model;
     if (!robot_model.initXml(xml_doc)) {
         ROS_ERROR("Could not generate robot model");
@@ -1972,14 +1974,16 @@ bool colladaFromUrdfXml(TiXmlDocument* xml_doc, boost::shared_ptr<DAE> dom) {
     return colladaFromUrdfModel(robot_model, dom);
 }
 
-bool colladaFromUrdfModel(urdf::Model const& robot_model, boost::shared_ptr<DAE> dom) {
+bool colladaFromUrdfModel(urdf::Model const& robot_model, boost::shared_ptr<DAE> & dom) {
     ColladaWriter writer(robot_model,0);
     bool success = writer.convert();
-    dom = boost::shared_ptr<DAE>(writer.colladaRepresentation());
+    dom = writer.colladaRepresentation();
     return success && dom != boost::shared_ptr<DAE>();
 }
 
 bool colladaToFile(boost::shared_ptr<DAE> dom, string const& file) {
+  if (!dom)
+    return false;
 	daeString uri = dom->getDoc(0)->getDocumentURI()->getURI();
 	return dom->writeTo(uri, file);
 }

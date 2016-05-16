@@ -31,17 +31,30 @@
 
 #include <gtest/gtest.h>
 
+#include <boost/filesystem/path.hpp>
+
 #include <fstream>
 #include <sstream>
 #include <string>
 
 class ColladaUrdfTestFixture : public ::testing::Test {
 public:
-  static std::string testUrdfString = "test/pr2.urdf";
-  static std::string testColladaString = "test/pr2.dae";
+  std::string test_urdf_string = "test/pr2.urdf";
+  std::string test_collada_string = "test/pr2.dae";
+
+  void SetUp() {
+      boost::filesystem::path urdfPath = boost::filesystem::current_path();
+      urdfPath += "/test/pr2.urdf";
+
+      if (!boost::filesystem::exists(urdfPath)) {
+         std::cerr << "URDF file did not exist." << std::endl;
+         FAIL();
+      }
+      test_urdf_string = urdfPath.string();
+  }
 
   std::string readTestUrdfString() {
-      std::ifstream file(testUrdfString);
+      std::ifstream file(test_urdf_string);
       std::stringstream ss;
       ss << file.rdbuf();
       return ss.str();
@@ -52,8 +65,8 @@ public:
 TEST_F(ColladaUrdfTestFixture, collada_from_urdf_file_works)
 {
     boost::shared_ptr<DAE> dom;
-    ASSERT_TRUE(collada_urdf::colladaFromUrdfFile(testUrdfString, dom));
-    ASSERT_TRUE(collada_urdf::colladaToFile(dom, testColladaString));
+    ASSERT_TRUE(collada_urdf::colladaFromUrdfFile(test_urdf_string, dom));
+    ASSERT_TRUE(collada_urdf::colladaToFile(dom, test_collada_string));
 }
 
 TEST_F(ColladaUrdfTestFixture, collada_from_urdf_string_works)
@@ -62,7 +75,7 @@ TEST_F(ColladaUrdfTestFixture, collada_from_urdf_string_works)
 
     boost::shared_ptr<DAE> dom;
     ASSERT_TRUE(collada_urdf::colladaFromUrdfString(urdf_str, dom));
-    ASSERT_TRUE(collada_urdf::colladaToFile(dom, testColladaString));
+    ASSERT_TRUE(collada_urdf::colladaToFile(dom, test_collada_string));
 }
 
 TEST_F(ColladaUrdfTestFixture, collada_from_urdf_xml_works)
@@ -72,7 +85,7 @@ TEST_F(ColladaUrdfTestFixture, collada_from_urdf_xml_works)
 
     boost::shared_ptr<DAE> dom;
     ASSERT_TRUE(collada_urdf::colladaFromUrdfXml(&urdf_xml, dom));
-    ASSERT_TRUE(collada_urdf::colladaToFile(dom, testColladaString));
+    ASSERT_TRUE(collada_urdf::colladaToFile(dom, test_collada_string));
 }
 
 TEST_F(ColladaUrdfTestFixture, collada_from_urdf_model_works)
@@ -84,7 +97,7 @@ TEST_F(ColladaUrdfTestFixture, collada_from_urdf_model_works)
 
     boost::shared_ptr<DAE> dom;
     ASSERT_TRUE(collada_urdf::colladaFromUrdfModel(robot_model, dom));
-    ASSERT_TRUE(collada_urdf::colladaToFile(dom, testColladaString));
+    ASSERT_TRUE(collada_urdf::colladaToFile(dom, test_collada_string));
 }
 
 int main(int argc, char **argv) {
